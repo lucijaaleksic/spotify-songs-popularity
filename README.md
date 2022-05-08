@@ -1,6 +1,6 @@
 # Popularnost Spotify pjesama
 ## Motivacija i opis problema
-Spotify je švedska mrežna usluga za prenošenje glazbenih sadržaja koja korisnicima dopušta slušanje i dijeljenje glazbe. Utemeljen 2006 godine, trenutno je jedan od najve´cih audio-streaming usluga s više od
+Spotify je švedska mrežna usluga za prenošenje glazbenih sadržaja koja korisnicima dopušta slušanje i dijeljenje glazbe. Utemeljen 2006. godine, trenutno je jedan od najvećih audio-streaming usluga s više od
 365 milijuna mjesečno aktivnih korisnika, te više od 70 milijuna pjesama. Time, Spotify raspolaže velikom
 količinom podataka o samim korisnicima i njihovim glazbenim preferencijama. Analizom takvih podataka
 Spotify može maksimizirati zadovoljstvo krajnjeg korisnika predlažući mu novi, neotkriveni sadržaj.
