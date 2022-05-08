@@ -1,0 +1,594 @@
+---
+title: "Popularnost Spotify pjesama"
+subtitle: "Projekt iz predmeta *Statistička analiza podataka*"
+author: "Lucija Aleksić, Domagoj Matošević, Maria Fain, Matko Barbić"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+U datasetu *SpotifyDB* svaki redak predstavlja pojedinu pjesmu. Svaka pjesma je opisana s 18 varijabli.
+
+```{r}
+dataset <- read.csv(file = "SpotifyDB.csv")
+```
+
+Osnovne informacije o samom datasetu: 
+
+```{r}
+# Broj redaka(pjesama), broj stupaca
+dim(dataset) 
+
+# Imena stupaca
+names(dataset) 
+```
+* __*genre*__ žanr glazbe
+* __*artist_name*__ ime izvođača
+* __*track_name*__ ime pjesme
+* __*track_id*__ jedinstveni identifikator pjesme
+* __*popularity*__ popularnost pojedine pjesme, poprima vrijednosti 0-100, gdje je 100 najpopularnija
+* __*acousticness*__ mjera koja govori o akustičnosti pjesme, poprima vrijednosti 0-1, gdje je 1 visoka akustičnost
+* __*danceability*__ mjera koja govori o pjesnosti pjesme, poprima vrijednosti 0-1, gdje je 1 visoka plesnost
+* __*duration_ms*__ trajanje pjesme u milisekundama
+* __*energy*__ mjera koja govori o intenzitetu i aktivnosti pjesme, poprima vrijednosti 0-1, gdje je 1 visoka energija
+* __*instrumentalness*__ mjera koja govori o omjeru ljudskog glasa i instrumentala, poprima vrijednosti 0-1, gdje je 1 potpuno instrumentalna pjesma bez vokala
+* __*key*__ tonalitet pjesme
+* __*liveness*__ prisutnost publike u nastupu, poprima vrijednosti 0-1, gdje je 1 potpuna živost
+* __*loudness*__ sveukupna glasnoća u dB
+* __*mode*__ tonski rod ljestvice, dur ili mol
+* __*speechiness*__ prisutnost izgovorenih riječi u pjesmi, poprima vrijednosti 0-1, gdje je 0 niska govorljivost npr. podcast
+* __*tempo*__ tempo pjesme izražen u BPM (beats per minute)
+* __*time_signature*__ zapis mjere vremena
+* __*valence*__ pozitivnost pjesme, poprima vrijednosti 0-1, gdje je 1 jako sretna i euforična pjesma
+
+***
+
+# Deskriptivna statistika
+Ovdje ćemo prikazati i opisati varijable koje ćemo najčešće koristiti u daljnjem projektu kako bismo se bolje upoznali. Izračunat ćemo mjere centralne tendencije, rasipanja te po potrebi ih vizualizirati na razne načine.
+
+
+#### Osnovna deskriptivna statistika
+
+```{r}
+summary(dataset) 
+```
+
+### Tempo
+
+```{r}
+# Aritmetička sredina
+mean(dataset$tempo)
+
+# Podrezana aritmetička sredina
+mean(dataset$tempo, trim=0.2)
+
+# Medijan
+median(dataset$tempo)
+
+```
+```{r}
+# Najbrža pjesma
+max(dataset$tempo)
+# Ime najbrže pjesme
+cat(dataset[which.max(dataset$tempo), ]$track_name, ",",
+    dataset[which.max(dataset$tempo), ]$artist, "\n")
+
+# Najsporija pjesma
+min(dataset$tempo)
+# Ime najsporije pjesme
+cat(dataset[which.min(dataset$tempo), ]$track_name , ",",
+    dataset[which.min(dataset$tempo), ]$artist, "\n")
+
+# Varijanca i standardna devijacija
+var(dataset$tempo)
+sd(dataset$tempo)
+```
+
+
+```{r}
+hist(dataset$tempo, breaks = 20)
+```
+
+```{r}
+# Ispitivanje normalnosti tempa
+library(fitdistrplus)
+FIT <- fitdistrplus::fitdist(dataset$tempo, "norm")  
+plot(FIT)
+```
+
+### Danceability
+
+```{r}
+# Aritmetička sredina
+mean(dataset$danceability)
+
+# Podrezana aritmetička sredina
+mean(dataset$danceability, trim=0.2)
+
+# Medijan
+median(dataset$danceability)
+```
+```{r}
+# Ispitivanje normalnosti danceability-a
+library(fitdistrplus)
+FIT <- fitdistrplus::fitdist(dataset$danceability, "norm")   
+plot(FIT)   
+```
+```{r}
+# U kojem žanru su pjesme najplesnje?
+library(tidyverse) 
+
+dataset %>% group_by(ď.żgenre) %>% summarise(
+  average = mean(danceability)
+) -> avgByGenre
+
+avgByGenre[which.max(avgByGenre$average), ]$ď.żgenre
+```
+
+## Mode
+```{r}
+table(dataset$mode)
+```
+```{r}
+barplot(table(dataset$mode))
+```
+
+## Popularity
+
+```{r}
+summary(dataset$popularity)
+
+# Aritmetička sredina
+mean(dataset$popularity)
+
+# Podrezana aritmetička sredina
+mean(dataset$popularity, trim=0.2)
+
+# Medijan
+median(dataset$popularity)
+```
+
+Top 5 pjesama
+
+```{r}
+max = max(dataset$popularity)
+
+# Ljestvica 5 najpopularnijih pjesama
+for (i in 0:4) {
+  song = dataset[which(dataset$popularity == (max - i)),]
+  results = distinct(song[,c(2,3)])
+  cat("----------------------", i+1, "----------------------", "\n")
+      print.data.frame(results)
+}
+```
+
+```{r}
+hist(dataset$popularity, breaks = 20)
+```
+## Zanr
+
+```{r}
+table(dataset$ď.żgenre)
+
+genreFreq <- data.frame(table(dataset$ď.żgenre))
+
+# Žanr s najviše pjesama
+genreFreq[which.max(genreFreq$Freq), ]$Var1
+# Žanr s najmanje pjesama
+genreFreq[which.min(genreFreq$Freq), ]$Var1
+```
+
+## Imaju li neki zanrovi znacajno razlicit tempo?
+```{r}
+## Box-plot za tempo
+boxplot(dataset$tempo ~ dataset$ď.żgenre, data = dataset)
+```
+Iz pravokutnog dijagrama možemo pretpostaviti da postoje značajne razlike u tempu žanrova.Na primjer, možemo vidjeti da žanr Electronic ima prosječno značajno veću vrijednost varijable tempo od žanra Comedy.
+Kako bi dokazali da postoji razlika koristit ćemo ANOVA test.
+
+```{r}
+## Anova
+anovaTable <- aov(formula = dataset$tempo ~ dataset$ď.żgenre, data = dataset)
+summary(anovaTable)
+```
+Možemo vidjedi da postoji značajna razlika među tempima žanrova pri značajnosti mnogo manjoj od 0.05.
+Kako bi našli razliku između pojedinih žanrova koristiti ćemo se Tukey-evim testom.
+
+```{r}
+## Tukey post hoc test
+tukey <- TukeyHSD(anovaTable)
+print(tukey)
+```
+
+S obzirom na to da postoji puno kombinacija vizualizirati ćemo samo pet rezultata koji su međusobno najviše različiti.
+```{r}
+## Sortiranje rezultata tukey-evog testa
+tukeyData <- as.data.frame(tukey$`dataset$ď.żgenre`)
+## plot(tukey)
+
+orderedTukey <- tukeyData[order(abs(tukeyData[, 1]), decreasing = TRUE),]
+
+print(orderedTukey[0:5, ])
+```
+
+```{r}
+## Funkcija za crtanje grafa za prikaz top pet rezultata sa najvećom razlikom u prosjećnoj vrijednosti
+tukeyPlot <- function (x, ...) 
+{
+  for (i in seq_along(x)) {
+    xi <- x[[i]][, -4L, drop = FALSE]
+    yvals <- nrow(xi):1L
+    dev.hold()
+    on.exit(dev.flush())
+    plot(c(xi[, "lwr"], xi[, "upr"]), rep.int(yvals, 
+                                              2L), type = "n", axes = FALSE, xlab = "", 
+         ylab = "", main = NULL, ...)
+    axis(1, ...)
+    axis(2, at = nrow(xi):1, labels = dimnames(xi)[[1L]], 
+         srt = 0, ...)
+    abline(h = yvals, lty = 1, lwd = 0.5, col = "lightgray")
+    abline(v = 0, lty = 2, lwd = 0.5, ...)
+    segments(xi[, "lwr"], yvals, xi[, "upr"], 
+             yvals, ...)
+    segments(as.vector(xi), rep.int(yvals - 0.1, 3L), as.vector(xi), 
+             rep.int(yvals + 0.1, 3L), ...)
+    title(main = paste0(format(100 * attr(x, "conf.level"), 
+                               digits = 2L), "95% family-wise confidence level\n"), 
+          xlab = paste("Differences in mean levels of", 
+                       names(x)[i]))
+    box()
+    dev.flush()
+    on.exit()
+  }
+}
+```
+Vizualizacija rezultata
+```{r}
+## Crtanje sortiranih rezultata
+tukeyPlot(list(data.matrix(orderedTukey[0:5, ])))
+```
+Možemo vidjeti da je najveća razlika između žanrova Ska i Comedy, a kao što smo i pretpostavili iz pravokutnog dijagrama postoji i značajna razlika između žanrova Electronic i Comedy. 
+
+## Jesu li pjesme pisane u duru ”plesnije” od onih pisane u molu?
+
+```{r}
+cat('Major označava pjesme u duru kojih ima', sum(table(dataset$mode)[c(1)]), ', a minor označava pjesme u molu kojih ima', sum(table(dataset$mode)[c(1)]), '\n')
+cat('Zbroj tih vrijednosti jednak je broju redaka naše baze (', sum(table(dataset$mode)), ') što znači da svaka pjesma ima definiran tonski rod ljestvice(mode).\n')
+
+table(dataset$mode)
+
+#definiramo pjesme u duru i pjesme u molu
+major_songs = dataset[dataset$mode == "Major",]
+minor_songs = dataset[dataset$mode == "Minor",]
+```
+
+Izračun očekivanja plesnosti za pjesme pisane u duru i pjesme pisane u molu.
+
+```{r}
+cat('Očekivana plesnost pjesama pisanih u duru iznosi ', mean(major_songs$danceability), '\n')
+cat('Očekivana plesnost pjesama pisanih u molu iznosi ', mean(minor_songs$danceability), '\n')
+```
+
+```{r}
+boxplot(major_songs$danceability, minor_songs$danceability, 
+        names = c('Major songs danceability','Minor songs danceability'),
+        main='Boxplot of major and minor songs danceability')
+```
+
+Postoje indikacije da bi pjesme pisane u molu trebale biti "plesnije" od onih pisanih u duru.
+
+Da bi provjerili jesu li pjesme pisane u duru "plesnije" od onih pisanih u molu koristit ćemo t-test za dva uzorka. Također ćemo provjeriti jednakost njihovih varijanci da bi utvrdili koji točno t-test možemo koristiti jer razlikujemo t-test s pretpostavkom jednakosti varijanci i t-test s pretpostavkom nejednakosti varijanci.
+
+Hipoteze tada glase ovako:
+$$ \begin{aligned}
+H_0&: \mu_1 = \mu_2 \\
+H_1&: \mu_1 < \mu_2 \quad \text{,} \quad \mu_1 > \mu_2 \quad \text{,} \quad \mu_1 \neq \mu_2
+\end{aligned} $$
+
+$\mu_1$ i $\mu_2$ označavaju očekivanja plesnosti pjesama pisanih u duru i pjesama pisanih u molu, respektivno. 
+
+Kako bismo mogli provesti test, moramo najprije provjeriti pretpostavke normalnosti i nezavisnosti uzorka. Obzirom da razmatramo pjesme pisane u drukčijim tonskim rodovima, možemo pretpostaviti njihovu nezavisnost. Sljedeći korak je provjeriti normalnost podataka koju ćemo provjeriti histogramom.
+
+```{r}
+hist(major_songs$danceability, 
+     main='Histogram of danceability of songs written in major',
+     xlab='Danceability')
+
+hist(minor_songs$danceability, 
+     main='Histogram of danceability of songs written in minor',
+     xlab='Danceability')
+```
+
+Histogrami nam pokazuju da su podaci normalne distribucije.
+
+Zatim ispitujemo jednakost varijanci da utvrdimo koji t-test ćemo koristiti.
+
+Pogledajmo vrijednosti varijanci naših uzoraka.
+
+```{r}
+var(major_songs$danceability)
+var(minor_songs$danceability)
+```
+
+Moramo ispitati jesu li značajno različite.
+
+Ako imamo dva nezavisna slučajna uzorka $X_1^1, X_1^2, \ldots X_1^{n_1}$ i $X_2^1, X_2^2, \ldots, X_2^{n_2}$ koji dolaze iz normalnih distribucija s varijancama $\sigma_1^2$ i $\sigma_2^2$, tada slučajna varijabla
+$$F = \frac{S_{X_1}^2 / \sigma_1^2}{S_{X_2}^2 / \sigma_2^2}$$
+
+ima Fisherovu distribuciju s $(n_1 - 1, n_2 - 1)$ stupnjeva slobode, pri čemu vrijedi:
+$$S_{X_1}^2 = \frac{1}{n_1 - 1} \sum_{i = 1}^{n_1} (X_1^i - \bar{X}_1)^2, \quad S_{X_2}^2 = \frac{1}{n_2 - 1} \sum_{i = 1}^{n_2} (X_2^i - \bar{X}_2)^2.$$
+
+Hipoteze testa jednakosti varijanci glase:
+$$ \begin{aligned}
+H_0&: \sigma_1^2 = \sigma_2^2 \\
+H_1&: \sigma_1^2 < \sigma_2^2 \quad \text{,} \quad \sigma_1^2 > \sigma_2^2 \quad \text{,} \quad \sigma_1^2 \neq \sigma_2^2
+\end{aligned} $$
+
+Ispitajmo jednakost varijanci naših danih uzoraka.
+
+```{r}
+
+var.test(major_songs$danceability, minor_songs$danceability)
+
+```
+
+P-vrijednost od 2.2e-16 nam govori da ćemo odbaciti hipotezu $H_0$ u korist $H_1$ i zaključiti da varijance naših dvaju uzoraka nisu jednake te u skladu s time dalje provoditi prikladan test.
+
+Koristimo testnu statistiku
+
+$$T' = \frac{\bar{X}_1 - \bar{X}_2 - (\mu_1 - \mu_2)}{\sqrt{\frac{s_{X_1}^2}{n_1} + \frac{s_{X_2}^2}{n_2}}}$$
+
+koja ima aproksimativnu t-distribuciju sa stupnjevima slobode 
+$$v = \frac{(s_{X_1}^2/n_1+ s_{X_2}^2 / n_2)^2}{(s_{X_1}^2/n_1)^2 / (n_1 - 1) + (s_{X_2}^2/n_2)^2 / (n_2 - 1)}$$
+
+gdje je 
+$$s_{X_i}^2 = \frac{1}{n_i - 1} \sum_{j=1}^{n_i} (X_i^j - \bar{X_i})^2 $$
+
+za $i=1,2$.
+
+Provedimo sada t-test uz pretpostavku nejednakih varijanci.
+
+```{r}
+t.test(major_songs$danceability, minor_songs$danceability, alt = "greater", var.equal = FALSE)
+```
+
+Zbog dobivene p-vrijednosti nećemo odbaciti hipotezu $H_0$ o jednakosti prosječnih vrijednosti te možemo reći da pjesme u duru nisu "plesnije" od onih pisanih u molu, kao što nam je ranije indicirao "boxplot" dijagram vrijednosti naših dvaju promatranih uzoraka.
+
+## Mozemo li temeljem danih varijabli predvidjeti popularnost neke pjesme?
+
+Pogledajmo korelacije popularnosti sa svakom mogućom varijablom. Kao potencijalne kandidate uzmimo 3 varijable s najvećom korelacijom. 
+
+```{r}
+writeLines("Correlaction with popularity in all the songs")
+cor(dataset[c(5,6,7,8,9,10,12,13,15,16,18)])[1,]
+```
+Kandidati su nam acousticness, loudness, danceability.
+
+Prvo cemo napraviti jednostavni regresijski model za svaku od te tri varijable.
+```{r}
+fit.loudness <- lm(popularity~loudness, data=dataset) 
+plot(dataset$loudness, dataset$popularity)
+lines(dataset$loudness, fit.loudness$fitted.values,col='red')
+
+fit.acousticness <- lm(popularity~acousticness, data=dataset) 
+plot(dataset$acousticness, dataset$popularity)
+lines(dataset$acousticness, fit.acousticness$fitted.values,col='red')
+
+fit.danceability <- lm(popularity~danceability, data=dataset) 
+plot(dataset$danceability, dataset$popularity)
+lines(dataset$danceability, fit.danceability$fitted.values,col='red')
+
+```
+```{r}
+summary(fit.loudness)
+summary(fit.danceability)
+summary(fit.acousticness)
+```
+Iz nagiba pravca na grafovima vidimo da sve varijable imaju nagnut pravac s najvecim nagibom kod varijabli loudness i acousticness.  Vidimo isto da acousticness i loudness imaju ya duplo veće vrijednosti R^2 od danceabilitya.
+
+Provjera normalnosti reziduala za varijablu loudness
+```{r}
+require(nortest)
+selected.model = fit.loudness
+lillie.test(rstandard(selected.model))
+plot(selected.model$residuals)
+hist((selected.model$residuals))
+hist(rstandard(selected.model))
+qqnorm(rstandard(selected.model))
+qqline(rstandard(selected.model))
+plot(selected.model$fitted.values,selected.model$residuals)
+ks.test(rstandard(fit.loudness),'pnorm')
+```
+Distribucija reziduala je slicna obliku normalne distribucije.
+
+Provjera normalnosti reziduala za varijablu acousticness
+```{r}
+require(nortest)
+selected.model = fit.acousticness
+lillie.test(rstandard(selected.model))
+plot(selected.model$residuals)
+hist((selected.model$residuals))
+hist(rstandard(selected.model))
+qqnorm(rstandard(selected.model))
+qqline(rstandard(selected.model))
+plot(selected.model$fitted.values,selected.model$residuals)
+ks.test(rstandard(fit.loudness),'pnorm')
+```
+Distribucija reziduala je slicna obliku normalne distribucije.
+
+
+Višestruka regresija
+Prvo ćemo vidjeti kako koreliraju danceability, loudness, i acousticness.
+```{r}
+cor(cbind(dataset$loudness, dataset$acousticness, dataset$danceability))
+```
+Vidimo da loudness i popularity jako koreliraju tako da skup njih nećemo koristiti. Skupovi koje cemo testirati za višestruku linearnu regresiju su loudness + danceability i acousticness + danceability.
+```{r}
+fit.multi <- lm(popularity ~ loudness + danceability, data = dataset)
+summary(fit.multi)
+fit.multi <- lm(popularity ~ acousticness + danceability, data = dataset)
+summary(fit.multi)
+```
+
+Vidimo da je R^2 vrijednost malo veća u slučaju acousticness + danceability. Ali, R^2 vrijednost je i dalje mala tako da je utjecaj malen.
+Skup vrijednosti koje imaju utjecaj na popularnost pjesme su acousticness i danceability zajedno.
+
+## Kakve karakteristike bi vaša pjesma trebala imati ako želite da ona bude što popularnija?
+
+Odaberimo žanr R&B
+Za početak pogledajmo kako korelira sa svim varijablama tako da dobijemo par kandidata.
+
+```{r}
+
+genreData <- subset(dataset, ď.żgenre == "R&B")
+
+genreData = genreData[order(-genreData$popularity),]
+genreDataTrim = genreData[0:500,]
+
+cor(genreDataTrim[c(5,6,7,8,9,10,12,13,15,16,18)])[1,]
+
+```
+Vidimo da su 3 najkoreliranije varijable loudness, energy, speechiness. 
+Nećemo koristiti instrumentalness i liveness zbog nepravilne distribucije, što ćemo i pokazati histogramom.
+
+```{r}
+hist(genreDataTrim$instrumentalness)
+hist(genreDataTrim$liveness)
+```
+
+Pokazat ćemo jednostavnu regresiju sa našim kandidatima. 
+
+```{r}
+
+fit.loudness <- lm(popularity~loudness, data=genreDataTrim) 
+
+plot(genreDataTrim$loudness, genreDataTrim$popularity)
+lines(genreDataTrim$loudness, fit.loudness$fitted.values,col='red')
+
+fit.energy <- lm(popularity~energy, data=genreDataTrim) 
+
+plot(genreDataTrim$energy, genreDataTrim$popularity)
+lines(genreDataTrim$energy, fit.energy$fitted.values,col='red')
+
+fit.speechiness <- lm(popularity~speechiness, data=genreDataTrim) 
+
+plot(genreDataTrim$speechiness, genreDataTrim$popularity)
+lines(genreDataTrim$speechiness, fit.speechiness$fitted.values,col='red')
+
+```
+
+Grafovi pokazuju da će pjesma što je glasnija i energičnija biti i popularnija. Također, što je više "govorljiva" bit će manje popularna.
+Uočavamo da su svi nagibi pravaca mali što upućuje na blage efekte određenih varijabli na popularnost. 
+
+Nakon što smo dobili modele treba provjeriti jesu li narušene pretpostavke modela.
+
+Počnimo sa normalnosti reziduala.
+
+```{r}
+require(nortest)
+
+lillie.test(rstandard(fit.loudness))
+
+selected.model = fit.loudness
+summary(fit.loudness)
+
+qqnorm(rstandard(selected.model))
+qqline(rstandard(selected.model))
+
+hist(selected.model$residuals)
+plot(selected.model$residuals)
+
+lillie.test(rstandard(fit.energy))
+
+selected.model = fit.energy
+summary(fit.energy)
+
+qqnorm(rstandard(selected.model))
+qqline(rstandard(selected.model))
+
+hist(selected.model$residuals)
+
+plot(selected.model$residuals)
+
+selected.model = fit.speechiness
+summary(fit.speechiness)
+
+qqnorm(rstandard(selected.model))
+qqline(rstandard(selected.model))
+
+hist(selected.model$residuals)
+plot(selected.model$residuals)
+
+lillie.test(rstandard(fit.speechiness))
+
+```
+
+Histogrami i qq-plotova nam ukazuju na "slabe" lijeve repove. P-vrijednost je jako mala za svaki test, čak i uz korištenje preporučene Lillieforsove inačice. 
+Stoga, ne možemo donositi zaključke iz ovih regresijskih modela.
+
+## Višestruka regresija
+
+Prije nego procjenimo model višestruke regresije moramo provjeriti da pojedini parovi varijabli nisu (previše) korelirani. 
+
+```{r}
+cor(cbind(genreDataTrim$loudness, genreDataTrim$energy, genreDataTrim$speechiness)) # korelacijski koeficijenti parova regresora
+
+```
+Pošto su loudness i energy jako korelirane regresija s njima će nam dati neke rezultate, ali na temelju njih ne bi smjeli donositi zaključke. Stoga ćemo probati oba slučaja, odnosno kombinacije loudness + speechiness i energy + speechiness.
+
+```{r}
+fit.multi = lm(popularity ~ loudness + speechiness, genreDataTrim)
+summary(fit.multi)
+
+plot(fit.multi)
+
+fit.multi = lm(popularity ~ speechiness + energy, genreDataTrim)
+summary(fit.multi)
+
+plot(fit.multi)
+```
+
+Vidimo da model kombinacije loudness + speechiness bolji jer dobijemo R^2 0.02305, što je ujedno i najbolji model jer ima najveći R^2.
+
+Pošto smo vidjeli da nijedna varijabla niti kombinacija varijabli ne utječe pretjerano na popularnost, pogledat ćemo kako utječu imena izvođača.
+
+Iz dataseta smo stvorili podskup po umjetnicima koji sadrži prosječnu popularnost njihovih pjesama. Iz njega smo eliminirali umjetnike sa manje od 20 pjesama. 
+
+```{r}
+
+library(tidyverse) 
+
+options(warn = -1) 
+
+genreData %>% group_by(name = artist_name) %>% summarise(
+    avgPopularity = mean(popularity),
+    songCount = nrow(genreData[which((genreData$artist_name) == name),])
+) -> pop
+
+pop = pop[which(pop$songCount > 20),]
+pop = pop[order(-pop$avgPopularity),]
+
+top10Artist = pop[1:10,]
+top10Artist
+
+```
+
+Pogledajmo barplot 10 najpopularnijih umjetnika gdje ćemo ujedno prikazati granicu trećeg kvantila.
+
+```{r}
+thirdQuantile = quantile(genreData$popularity, c(0.75))
+thirdQuantile
+
+newData = genreData[which(genreData$artist_name == top10Artist[i,]$name),]
+
+for (i in 2:10) {
+  newData <- rbind(newData, (genreData[which(genreData$artist_name == top10Artist[i,]$name),]))
+}
+
+boxplot(popularity ~ artist_name, data=newData)
+abline(h=58, col="red")
+```
+
+Uočavamo da su svi umjetnici daleko iznad granice te zaključujemo da popularnost pjesme pak najviše ovisi o samom umjetniku. 
